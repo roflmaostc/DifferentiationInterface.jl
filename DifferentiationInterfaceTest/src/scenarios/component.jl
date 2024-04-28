@@ -23,6 +23,9 @@ function comp_to_num_scenarios_onearg(x::ComponentVector)
             scens,
             [
                 PullbackScenario(comp_to_num; x=x, ref=comp_to_num_pullback, operator=op),
+                PullbackScenario(
+                    comp_to_num; x=x, ref=comp_to_num_pullback, operator=op, chunk_size=2
+                ),
                 GradientScenario(comp_to_num; x=x, ref=comp_to_num_gradient, operator=op),
             ],
         )
@@ -33,6 +36,9 @@ function comp_to_num_scenarios_onearg(x::ComponentVector)
             [
                 PushforwardScenario(
                     comp_to_num; x=x, ref=comp_to_num_pushforward, operator=op
+                ),
+                PushforwardScenario(
+                    comp_to_num; x=x, ref=comp_to_num_pushforward, operator=op, chunk_size=2
                 ),
             ],
         )

@@ -91,9 +91,10 @@ check_twoarg
 check_hessian
 ```
 
-## Translation
+## Miscellaneous
 
 ```@docs
+Chunked
 DifferentiateWith
 ```
 

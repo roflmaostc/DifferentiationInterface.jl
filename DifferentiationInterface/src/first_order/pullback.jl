@@ -103,18 +103,27 @@ end
 function value_and_pullback_onearg_aux(f, backend, x, dy, extras::PushforwardPullbackExtras)
     (; pushforward_extras) = extras
     y = f(x)
-    dx = if x isa Number && y isa Number
-        dy * pushforward(f, backend, x, one(x), pushforward_extras)
-    elseif x isa Number && y isa AbstractArray
-        dot(dy, pushforward(f, backend, x, one(x), pushforward_extras))
-    elseif x isa AbstractArray && y isa Number
-        map(CartesianIndices(x)) do j
-            dy * pushforward(f, backend, x, basis(backend, x, j), pushforward_extras)
+    function _single_pullback(dy)
+        if x isa Number && y isa Number
+            dy * pushforward(f, backend, x, one(x), pushforward_extras)
+        elseif x isa Number && y isa AbstractArray
+            dot(dy, pushforward(f, backend, x, one(x), pushforward_extras))
+        elseif x isa AbstractArray && y isa Number
+            map(CartesianIndices(x)) do j
+                dy * pushforward(f, backend, x, basis(backend, x, j), pushforward_extras)
+            end
+        elseif x isa AbstractArray && y isa AbstractArray
+            map(CartesianIndices(x)) do j
+                dot(
+                    dy, pushforward(f, backend, x, basis(backend, x, j), pushforward_extras)
+                )
+            end
         end
-    elseif x isa AbstractArray && y isa AbstractArray
-        map(CartesianIndices(x)) do j
-            dot(dy, pushforward(f, backend, x, basis(backend, x, j), pushforward_extras))
-        end
+    end
+    dx = if dy isa Chunked
+        Chunked(map(_single_pullback, dy.values))
+    else
+        _single_pullback(dy)
     end
     return y, dx
 end
@@ -128,7 +137,12 @@ function value_and_pullback!(
     extras::PullbackExtras=prepare_pullback(f, backend, x, dy),
 )
     y, new_dx = value_and_pullback(f, backend, x, dy, extras)
-    return y, copyto!(dx, new_dx)
+    if dx isa Chunked
+        foreach(copyto!, dy.values, new_dy.values)
+    else
+        copyto!(dy, new_dy)
+    end
+    return y, dx
 end
 
 function pullback(
@@ -169,12 +183,24 @@ function value_and_pullback_twoarg_aux(
     f!, y, backend, x, dy, extras::PushforwardPullbackExtras
 )
     (; pushforward_extras) = extras
-    dx = if x isa Number && y isa AbstractArray
-        dot(dy, pushforward(f!, y, backend, x, one(x), pushforward_extras))
-    elseif x isa AbstractArray && y isa AbstractArray
-        map(CartesianIndices(x)) do j
-            dot(dy, pushforward(f!, y, backend, x, basis(backend, x, j), pushforward_extras))
+    function _single_pullback(dy)
+        if x isa Number && y isa AbstractArray
+            dot(dy, pushforward(f!, y, backend, x, one(x), pushforward_extras))
+        elseif x isa AbstractArray && y isa AbstractArray
+            map(CartesianIndices(x)) do j
+                dot(
+                    dy,
+                    pushforward(
+                        f!, y, backend, x, basis(backend, x, j), pushforward_extras
+                    ),
+                )
+            end
         end
+    end
+    dx = if dy isa Chunked
+        Chunked(map(_single_pullback, dy.values))
+    else
+        _single_pullback(dy)
     end
     f!(y, x)
     return y, dx
@@ -190,7 +216,12 @@ function value_and_pullback!(
     extras::PullbackExtras=prepare_pullback(f!, y, backend, x, dy),
 )
     y, new_dx = value_and_pullback(f!, y, backend, x, dy, extras)
-    return y, copyto!(dx, new_dx)
+    if dy isa Chunked
+        foreach(copyto!, dx.values, new_dx.values)
+    else
+        copyto!(dx, new_dx)
+    end
+    return y
 end
 
 function pullback(

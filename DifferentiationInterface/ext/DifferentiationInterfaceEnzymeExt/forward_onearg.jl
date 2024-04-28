@@ -42,7 +42,7 @@ struct EnzymeForwardGradientExtras{C,O} <: GradientExtras
 end
 
 function DI.prepare_gradient(f, ::AutoForwardEnzyme, x)
-    C = pick_chunksize(length(x))
+    C = pick_chunk_size(length(x))
     shadow = chunkedonehot(x, Val(C))
     return EnzymeForwardGradientExtras{C,typeof(shadow)}(shadow)
 end
@@ -81,7 +81,7 @@ struct EnzymeForwardOneArgJacobianExtras{C,O} <: JacobianExtras
 end
 
 function DI.prepare_jacobian(f, ::AutoForwardOrNothingEnzyme, x)
-    C = pick_chunksize(length(x))
+    C = pick_chunk_size(length(x))
     shadow = chunkedonehot(x, Val(C))
     return EnzymeForwardOneArgJacobianExtras{C,typeof(shadow)}(shadow)
 end

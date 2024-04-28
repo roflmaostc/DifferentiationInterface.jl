@@ -105,7 +105,7 @@ end
 struct EnzymeReverseOneArgJacobianExtras{C,N} end
 
 function DI.prepare_jacobian(f, ::AutoReverseEnzyme, x)
-    C = pick_chunksize(length(x))
+    C = pick_chunk_size(length(x))
     y = f(x)
     N = length(y)
     return EnzymeReverseOneArgJacobianExtras{C,N}()

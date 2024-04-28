@@ -64,7 +64,7 @@ include("sparse/hessian.jl")
 
 include("translation/differentiate_with.jl")
 
-export SecondOrder
+export SecondOrder, Chunked
 
 export value_and_pushforward!, value_and_pushforward
 export value_and_pullback!, value_and_pullback

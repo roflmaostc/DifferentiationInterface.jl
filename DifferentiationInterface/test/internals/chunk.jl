@@ -1,9 +1,9 @@
-@test DI.pick_chunksize.(1:(DI.DEFAULT_CHUNKSIZE)) == 1:(DI.DEFAULT_CHUNKSIZE)
+@test DI.pick_chunk_size.(1:(DI.DEFAULT_CHUNK_SIZE)) == 1:(DI.DEFAULT_CHUNK_SIZE)
 @test all(
-    DI.pick_chunksize.((DI.DEFAULT_CHUNKSIZE + 1):(5DI.DEFAULT_CHUNKSIZE)) .<=
-    DI.DEFAULT_CHUNKSIZE,
+    DI.pick_chunk_size.((DI.DEFAULT_CHUNK_SIZE + 1):(5DI.DEFAULT_CHUNK_SIZE)) .<=
+    DI.DEFAULT_CHUNK_SIZE,
 )
 @test all(
-    DI.pick_chunksize.((DI.DEFAULT_CHUNKSIZE + 1):(5DI.DEFAULT_CHUNKSIZE)) .>=
-    DI.DEFAULT_CHUNKSIZE / 2,
+    DI.pick_chunk_size.((DI.DEFAULT_CHUNK_SIZE + 1):(5DI.DEFAULT_CHUNK_SIZE)) .>=
+    DI.DEFAULT_CHUNK_SIZE / 2,
 )

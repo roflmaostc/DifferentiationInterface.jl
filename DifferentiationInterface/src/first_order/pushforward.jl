@@ -94,18 +94,24 @@ function value_and_pushforward_onearg_aux(
 )
     (; pullback_extras) = extras
     y, pullbackfunc = value_and_pullback_split(f, backend, x, pullback_extras)
-    dy = if x isa Number && y isa Number
-        dx * pullbackfunc(one(y))
-    elseif x isa AbstractArray && y isa Number
-        dot(dx, pullbackfunc(one(y)))
-    elseif x isa Number && y isa AbstractArray
-        map(CartesianIndices(y)) do i
-            dx * pullbackfunc(basis(backend, y, i))
+    _single_pushforward(dx) =
+        if x isa Number && y isa Number
+            dx * pullbackfunc(one(y))
+        elseif x isa AbstractArray && y isa Number
+            dot(dx, pullbackfunc(one(y)))
+        elseif x isa Number && y isa AbstractArray
+            map(CartesianIndices(y)) do i
+                dx * pullbackfunc(basis(backend, y, i))
+            end
+        elseif x isa AbstractArray && y isa AbstractArray
+            map(CartesianIndices(y)) do i
+                dot(dx, pullbackfunc(basis(backend, y, i)))
+            end
         end
-    elseif x isa AbstractArray && y isa AbstractArray
-        map(CartesianIndices(y)) do i
-            dot(dx, pullbackfunc(basis(backend, y, i)))
-        end
+    dy = if dx isa Chunked
+        Chunked(map(_single_pushforward, dx.values))
+    else
+        _single_pushforward(dx)
     end
     return y, dy
 end
@@ -119,7 +125,12 @@ function value_and_pushforward!(
     extras::PushforwardExtras=prepare_pushforward(f, backend, x, dx),
 )
     y, new_dy = value_and_pushforward(f, backend, x, dx, extras)
-    return y, copyto!(dy, new_dy)
+    if dx isa Chunked
+        foreach(copyto!, dy.values, new_dy.values)
+    else
+        copyto!(dy, new_dy)
+    end
+    return y, dy
 end
 
 function pushforward(
@@ -160,14 +171,21 @@ function value_and_pushforward_twoarg_aux(
     f!, y, backend, x, dx, extras::PullbackPushforwardExtras
 )
     (; pullback_extras) = extras
-    dy = if x isa Number && y isa AbstractArray
-        map(CartesianIndices(y)) do i
-            dx * pullback(f!, y, backend, x, basis(backend, y, i), pullback_extras)
+    function _single_pushforward(dx)
+        if x isa Number && y isa AbstractArray
+            map(CartesianIndices(y)) do i
+                dx * pullback(f!, y, backend, x, basis(backend, y, i), pullback_extras)
+            end
+        elseif x isa AbstractArray && y isa AbstractArray
+            map(CartesianIndices(y)) do i
+                dot(dx, pullback(f!, y, backend, x, basis(backend, y, i), pullback_extras))
+            end
         end
-    elseif x isa AbstractArray && y isa AbstractArray
-        map(CartesianIndices(y)) do i
-            dot(dx, pullback(f!, y, backend, x, basis(backend, y, i), pullback_extras))
-        end
+    end
+    dy = if dx isa Chunked
+        Chunked(map(_single_pushforward, dx.values))
+    else
+        _single_pushforward(dx)
     end
     f!(y, x)
     return y, dy
@@ -183,7 +201,12 @@ function value_and_pushforward!(
     extras::PushforwardExtras=prepare_pushforward(f!, y, backend, x, dx),
 )
     y, new_dy = value_and_pushforward(f!, y, backend, x, dx, extras)
-    return y, copyto!(dy, new_dy)
+    if dx isa Chunked
+        foreach(copyto!, dy.values, new_dy.values)
+    else
+        copyto!(dy, new_dy)
+    end
+    return y, dy
 end
 
 function pushforward(

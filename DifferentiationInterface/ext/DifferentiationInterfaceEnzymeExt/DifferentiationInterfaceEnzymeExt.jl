@@ -13,7 +13,7 @@ using DifferentiationInterface:
     NoJacobianExtras,
     NoPullbackExtras,
     NoPushforwardExtras,
-    pick_chunksize
+    pick_chunk_size
 using DocStringExtensions
 using Enzyme:
     Active,
